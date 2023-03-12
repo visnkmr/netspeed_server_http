@@ -1,3 +1,4 @@
+#![windows_subsystem = "windows"]
 use std::{process::{exit},
     time::{Duration},
         thread, collections::HashMap,env, net::{TcpListener, TcpStream}, io::{BufRead, Write}};
