@@ -1,7 +1,7 @@
 #![windows_subsystem = "windows"]
 use std::{process::{exit},
     time::{Duration},
-        thread, collections::HashMap,env, net::{TcpListener, TcpStream}, io::{BufRead, Write}};
+        thread, collections::HashMap,env::{self, var}, net::{TcpListener, TcpStream}, io::{BufRead, Write}};
 // use abserde::Location;
 // use byte_unit::Byte;
 use chrono::Local;
@@ -11,15 +11,15 @@ use sysinfo::{SystemExt, NetworkExt, System};
 // use abserde::*;
 // use abserdeapi::*;
 use prefstore::*;
-
+const APPNAME:&str="ns_daemon";
 fn main() {
+    
     //to store interface name
     let mut iname=String::new();
     let date = Local::now();
     let current_date = date.format("%Y-%m-%d").to_string();
-    println!("{}",byte_unit::Byte::from_bytes(
-        getpreference(&current_date,0 as u128).parse::<u128>().unwrap()
-    ).get_appropriate_unit(true));
+    // setappname(var("CARGO_PKG_NAME").unwrap_or_else(|_| env!("CARGO_PKG_NAME").to_string()));
+    println!("{}",byte_unit::Byte::from_bytes(getpreference(APPNAME,&current_date,0 as u128).parse::<u128>().unwrap()).get_appropriate_unit(true));
     //set interface name from commandline to set it to track only specific network interface
     let args: Vec<String> = env::args().collect();
     match args.get(1){
@@ -29,7 +29,7 @@ fn main() {
                 let date = Local::now();
                 let current_date = date.format("%Y-%m-%d").to_string();
                 println!("{}",byte_unit::Byte::from_bytes(
-                    getpreference(&current_date,0 as u128).parse::<u128>().unwrap()
+                    getpreference(APPNAME,&current_date,0 as u128).parse::<u128>().unwrap()
                 ).get_appropriate_unit(true));
                 exit(0);
             }
@@ -38,26 +38,27 @@ fn main() {
             iname="all".to_string();
         }
     }
-        let mut dtpr:Vec<u64>=vec![0,0,0]; //stores total upload and download bytes count of current session and total data usage since the start of the ns_daemon in a day
-        let ina=iname.clone();
-        thread::spawn(move || loop {
-            // println!("fromhere------------>1");
-            updateusage(true/*,&mut val,&mut ptx,&mut prx*/,ina.to_owned(),&mut dtpr);
-            thread::sleep(Duration::from_secs(60));
-        });
-        let mut sys = System::new();
-        //customize port and address here.
-        match TcpListener::bind("127.0.0.1:6798") {
-            Ok(listener) =>{
-                for stream in listener.incoming(){
-                    let stream = stream.unwrap();
-                        handle_con(stream,iname.clone(),&mut sys);
-                }
-            },
-            Err(e) =>{
-                println!("Internet issue.\n Error:{}",e)
+        
+    let mut dtpr:Vec<u64>=vec![0,0,0]; //stores total upload and download bytes count of current session and total data usage since the start of the ns_daemon in a day
+    let ina=iname.clone();
+    thread::spawn(move || loop {
+        // println!("fromhere------------>1");
+        updateusage(true/*,&mut val,&mut ptx,&mut prx*/,ina.to_owned(),&mut dtpr);
+        thread::sleep(Duration::from_secs(60));
+    });
+    let mut sys = System::new();
+    //customize port and address here.
+    match TcpListener::bind("127.0.0.1:6798") {
+        Ok(listener) =>{
+            for stream in listener.incoming(){
+                let stream = stream.unwrap();
+                    handle_con(stream,iname.clone(),&mut sys);
             }
+        },
+        Err(e) =>{
+            println!("Internet issue.\n Error:{}",e)
         }
+    }
     
 }
 fn handle_con(mut stream:TcpStream,iname:String,sys:&mut System){
@@ -115,14 +116,14 @@ fn handle_con(mut stream:TcpStream,iname:String,sys:&mut System){
                     let date = Local::now();
                             let current_date = date.format("%Y-%m-%d").to_string();
                             // println!("fromhere------------>3");
-                            let tt=getpreference(&current_date,0 as u128).parse::<u128>().unwrap();
+                            let tt=getpreference(APPNAME,&current_date,0 as u128).parse::<u128>().unwrap();
                 return serde_json::to_string_pretty(&vec![total_tx,total_rx,tt as u64]).unwrap();
         }
 //returns todays total while ns_daemon running
 pub fn sincelastread()->String{
     let date = Local::now();
     let current_date = date.format("%Y-%m-%d").to_string();
-    let tt=getpreference(&current_date,0 as u128).parse::<u128>().unwrap();
+    let tt=getpreference(APPNAME,&current_date,0 as u128).parse::<u128>().unwrap();
     return serde_json::to_string_pretty(&vec![tt as u64]).unwrap();
 }
 // saves bytes used every minute to file while ns_daemon running
@@ -130,7 +131,7 @@ fn updateusage(whethertosave:bool/*,val:&mut u128,ptx:&mut u64,prx:&mut u64*/,in
     let date = Local::now();
     let current_date = date.format("%Y-%m-%d").to_string();
     // println!("fromhere------------>4");
-    dtpr[0] = getpreference(&current_date,0 as u64).parse::<u64>().unwrap();
+    dtpr[0] = getpreference(APPNAME,&current_date,0 as u64).parse::<u64>().unwrap();
             let mut sys = System::new();
             sys.refresh_networks_list();
             let mut total_rx: u64 = 0;
@@ -159,7 +160,7 @@ fn updateusage(whethertosave:bool/*,val:&mut u128,ptx:&mut u64,prx:&mut u64*/,in
             let date = Local::now();
             let current_date = date.format("%Y-%m-%d").to_string();
             if whethertosave{
-                savepreference(&current_date, dtpr[0] as u128)
+                savepreference(APPNAME,&current_date, dtpr[0] as u128)
             }
             }
             dtpr[1]=total_tx;
