@@ -5,16 +5,21 @@ use std::{process::{exit},
 // use abserde::Location;
 // use byte_unit::Byte;
 use chrono::Local;
-mod abserdeapi;
+// mod abserdeapi;
 // use fltk::{app::{App, self}, window::{Window, OverlayWindow, self, SingleWindow, DoubleWindow}, prelude::*, enums::{Color, self}, text::{TextDisplay, TextBuffer}, frame, menu};
 use sysinfo::{SystemExt, NetworkExt, System};
 // use abserde::*;
-use abserdeapi::*;
+// use abserdeapi::*;
+use prefstore::*;
 
 fn main() {
     //to store interface name
     let mut iname=String::new();
-    
+    let date = Local::now();
+    let current_date = date.format("%Y-%m-%d").to_string();
+    println!("{}",byte_unit::Byte::from_bytes(
+        getpreference(&current_date,0 as u128).parse::<u128>().unwrap()
+    ).get_appropriate_unit(true));
     //set interface name from commandline to set it to track only specific network interface
     let args: Vec<String> = env::args().collect();
     match args.get(1){
@@ -24,14 +29,7 @@ fn main() {
                 let date = Local::now();
                 let current_date = date.format("%Y-%m-%d").to_string();
                 println!("{}",byte_unit::Byte::from_bytes(
-                    match getasv().1.get(&current_date){
-                        Some(a)=>{
-                            *a
-                        },
-                        None=>{
-                            0 as u128
-                        }
-                    }
+                    getpreference(&current_date,0 as u128).parse::<u128>().unwrap()
                 ).get_appropriate_unit(true));
                 exit(0);
             }
@@ -117,28 +115,14 @@ fn handle_con(mut stream:TcpStream,iname:String,sys:&mut System){
                     let date = Local::now();
                             let current_date = date.format("%Y-%m-%d").to_string();
                             // println!("fromhere------------>3");
-                            let tt=match getasv().1.get(&current_date){
-                                Some(a)=>{
-                                    *a
-                                },
-                                None=>{
-                                    0 as u128
-                                }
-                            };
+                            let tt=getpreference(&current_date,0 as u128).parse::<u128>().unwrap();
                 return serde_json::to_string_pretty(&vec![total_tx,total_rx,tt as u64]).unwrap();
         }
 //returns todays total while ns_daemon running
 pub fn sincelastread()->String{
     let date = Local::now();
     let current_date = date.format("%Y-%m-%d").to_string();
-    let tt=match getasv().1.get(&current_date){
-                Some(a)=>{
-                    *a
-                },
-                None=>{
-                    0 as u128
-                }
-            };
+    let tt=getpreference(&current_date,0 as u128).parse::<u128>().unwrap();
     return serde_json::to_string_pretty(&vec![tt as u64]).unwrap();
 }
 // saves bytes used every minute to file while ns_daemon running
@@ -146,14 +130,7 @@ fn updateusage(whethertosave:bool/*,val:&mut u128,ptx:&mut u64,prx:&mut u64*/,in
     let date = Local::now();
     let current_date = date.format("%Y-%m-%d").to_string();
     // println!("fromhere------------>4");
-    dtpr[0] = match getasv().1.get(&current_date){
-                        Some(a)=>{
-                            *a as u64
-                        },
-                        None=>{
-                            0 as u64
-                        }
-    };
+    dtpr[0] = getpreference(&current_date,0 as u64).parse::<u64>().unwrap();
             let mut sys = System::new();
             sys.refresh_networks_list();
             let mut total_rx: u64 = 0;
@@ -182,9 +159,7 @@ fn updateusage(whethertosave:bool/*,val:&mut u128,ptx:&mut u64,prx:&mut u64*/,in
             let date = Local::now();
             let current_date = date.format("%Y-%m-%d").to_string();
             if whethertosave{
-                let mh =&mut getasv().1;
-                mh.insert(current_date, dtpr[0] as u128);
-                abserdeapi::setup(false, mh.to_owned());
+                savepreference(&current_date, dtpr[0] as u128)
             }
             }
             dtpr[1]=total_tx;
