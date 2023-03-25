@@ -41,13 +41,14 @@ fn main() {
         
     let mut dtpr:Vec<u64>=vec![0,0,0]; 
     let date = Local::now();
-    let current_date = date.format("%Y-%m-%d").to_string();
+    let mut current_date = date.format("%Y-%m-%d").to_string();
+    let mut last_saved_date:String =String::new();
     // println!("fromhere------------>4");
     dtpr[0] = getpreference(APPNAME,&current_date,0 as u64).parse::<u64>().unwrap();//stores total upload and download bytes count of current session and total data usage since the start of the ns_daemon in a day
     let ina=iname.clone();
     thread::spawn(move || loop {
         // println!("fromhere------------>1");
-        updateusage(true/*,&mut val,&mut ptx,&mut prx*/,ina.to_owned(),&mut dtpr);
+        updateusage(true/*,&mut val,&mut ptx,&mut prx*/,ina.to_owned(),&mut dtpr,&mut last_saved_date);
         thread::sleep(Duration::from_secs(60));
     });
     let mut sys = System::new();
@@ -138,11 +139,11 @@ pub fn sincelastread()->String{
     return serde_json::to_string_pretty(&vec![tt as u64]).unwrap();
 }
 // saves bytes used every minute to file while ns_daemon running
-fn updateusage(whethertosave:bool/*,val:&mut u128,ptx:&mut u64,prx:&mut u64*/,iname:String,dtpr:&mut Vec<u64>){//->String{
-            let mut lastsaveddate="".to_string();
+fn updateusage(whethertosave:bool/*,val:&mut u128,ptx:&mut u64,prx:&mut u64*/,iname:String,dtpr:&mut Vec<u64>,lastsaveddate:&mut String){//->String{
+            
             let date = Local::now();
             let current_date = date.format("%Y-%m-%d").to_string();
-            if lastsaveddate!=current_date{
+            if *lastsaveddate!=current_date{
                 dtpr[0]=0
             }
             let mut sys = System::new();
@@ -180,7 +181,7 @@ fn updateusage(whethertosave:bool/*,val:&mut u128,ptx:&mut u64,prx:&mut u64*/,in
             }
             dtpr[1]=total_tx;
             dtpr[2]=total_rx;
-            lastsaveddate = current_date;
+            *lastsaveddate = current_date;
             // let tt=total_rx+total_tx;
             // let byte_rx = byte_unit::Byte::from_bytes(turx as u128);
             // let byte_tx = byte_unit::Byte::from_bytes(tutx as u128);
