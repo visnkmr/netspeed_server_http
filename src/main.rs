@@ -139,7 +139,12 @@ pub fn sincelastread()->String{
 }
 // saves bytes used every minute to file while ns_daemon running
 fn updateusage(whethertosave:bool/*,val:&mut u128,ptx:&mut u64,prx:&mut u64*/,iname:String,dtpr:&mut Vec<u64>){//->String{
-    
+            let mut lastsaveddate="".to_string();
+            let date = Local::now();
+            let current_date = date.format("%Y-%m-%d").to_string();
+            if lastsaveddate!=current_date{
+                dtpr[0]=0
+            }
             let mut sys = System::new();
             sys.refresh_networks_list();
             let mut total_rx: u64 = 0;
@@ -164,15 +169,18 @@ fn updateusage(whethertosave:bool/*,val:&mut u128,ptx:&mut u64,prx:&mut u64*/,in
             let mut tutx=total_tx.saturating_sub(dtpr[1]);
             if dtpr[1]!=0 ||dtpr[2]!=0 {
                 dtpr[0]+=turx+tutx;
-                let mut dm:HashMap<String,u128>=HashMap::new();
-            let date = Local::now();
-            let current_date = date.format("%Y-%m-%d").to_string();
-            if whethertosave{
+                // let mut dm:HashMap<String,u128>=HashMap::new();
+            
+            {
+                if whethertosave{
                 savepreference(APPNAME,&current_date, dtpr[0] as u128)
             }
             }
+            
+            }
             dtpr[1]=total_tx;
             dtpr[2]=total_rx;
+            lastsaveddate = current_date;
             // let tt=total_rx+total_tx;
             // let byte_rx = byte_unit::Byte::from_bytes(turx as u128);
             // let byte_tx = byte_unit::Byte::from_bytes(tutx as u128);
