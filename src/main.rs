@@ -44,7 +44,8 @@ fn main() {
     let mut current_date = date.format("%Y-%m-%d").to_string();
     let mut last_saved_date:String =String::new();
     // println!("fromhere------------>4");
-    dtpr[0] = getpreference(APPNAME,&current_date,0 as u64).parse::<u64>().unwrap();//stores total upload and download bytes count of current session and total data usage since the start of the ns_daemon in a day
+    // dtpr[0] = getpreference(APPNAME,&current_date,0 as u64).parse::<u64>().unwrap();//stores total upload and download bytes count of current session and total data usage since the start of the ns_daemon in a day
+    dtpr[0] = 0 as u64;//stores total upload and download bytes count of current session and total data usage since the start of the ns_daemon in a day
     let ina=iname.clone();
     thread::spawn(move || loop {
         // println!("fromhere------------>1");
@@ -144,7 +145,7 @@ fn updateusage(whethertosave:bool/*,val:&mut u128,ptx:&mut u64,prx:&mut u64*/,in
             let date = Local::now();
             let current_date = date.format("%Y-%m-%d").to_string();
             if *lastsaveddate!=current_date{
-                dtpr[0]=0
+                dtpr[0]=getpreference(APPNAME,&current_date,0 as u64).parse::<u64>().unwrap()
             }
             let mut sys = System::new();
             sys.refresh_networks_list();
