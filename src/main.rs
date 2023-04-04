@@ -1,7 +1,8 @@
 #![windows_subsystem = "windows"]
+#![allow(warnings)]
 use std::{process::{exit},
     time::{Duration},
-        thread, collections::HashMap,env::{self, var}, net::{TcpListener, TcpStream}, io::{BufRead, Write}};
+        thread::{self, sleep},env::{self, var}, sync::mpsc::channel};
 // use abserde::Location;
 // use byte_unit::Byte;
 use chrono::Local;
@@ -11,8 +12,9 @@ use sysinfo::{SystemExt, NetworkExt, System};
 // use abserde::*;
 // use abserdeapi::*;
 use prefstore::*;
+use tiny_http::{Server, Request, Method, Header, Response, StatusCode};
 const APPNAME:&str="ns_daemon";
-fn main() {
+fn main() ->Result<(), ()> {
     
     //to store interface name
     let mut iname=String::new();
@@ -55,53 +57,137 @@ fn main() {
     let mut sys = System::new();
     let mut tt:u128=getpreference(APPNAME,&current_date,0 as u128).parse::<u128>().unwrap();
     let mut perminute=0;
-    //customize port and address here.
-    match TcpListener::bind("127.0.0.1:6798") {
-        Ok(listener) =>{
-            for stream in listener.incoming(){
-                let stream = stream.unwrap();
-                    handle_con(stream,iname.clone(),&mut sys,&mut tt,&mut perminute);
-            }
-        },
-        Err(e) =>{
-            println!("Internet issue.\n Error:{}",e)
-        }
+    let address="127.0.0.1:6798".to_string();
+    
+    let server=Server::http(&address).map_err(|err|{
+        eprintln!("{err}")
+    })?;
+    println!("listening @ {}",address);
+    for request in server.incoming_requests(){
+        handle_con(request,iname.clone(),&mut sys,&mut tt,&mut perminute)?;
     }
+    Ok(())
+    //customize port and address here.
+    // match TcpListener::bind("127.0.0.1:6798") {
+    //     Ok(listener) =>{
+    //         for stream in listener.incoming(){
+    //             let stream = stream.unwrap();
+    //                 handle_con(stream,iname.clone(),&mut sys,&mut tt,&mut perminute);
+    //         }
+    //     },
+    //     Err(e) =>{
+    //         println!("Internet issue.\n Error:{}",e)
+    //     }
+    // }
     
 }
-fn handle_con(mut stream:TcpStream,iname:String,sys:&mut System,tt:&mut u128,perminute:&mut i32){
-    let buf_reader = std::io::BufReader::new(&mut stream);
-    let request_line = match buf_reader.lines().next() {
-        None => "".to_string(),
-        Some(secondline) => {
-            match secondline {
-                Ok(reqline)  => reqline,
-                Err(e) => "".to_string(),
+// fn watcher(paths: Vec<String>, request: Request) {
+//     thread::spawn(move || {
+//         match event_stream(request) {
+//             _ => {}
+//         }
+//     });
+// }
+fn event_stream(request: Request) -> Result<(), ()> {
+    let mut res = Response::new(StatusCode::from(200), Vec::new(), std::io::Empty::default(), None, None);
+    let header = tiny_http::Header::from_bytes(&b"Content-Type"[..], &b"text/event-stream"[..]).unwrap();
+    res.add_header(header);
+
+    let http_version = request.http_version().clone();
+    let mut writer = request.into_writer();
+    
+
+    let mut buffer: Vec<u8> = Vec::new();
+    res.raw_print(&mut buffer, http_version, &[], true, None);
+
+    writer.write_all(&buffer);
+    writer.flush();
+
+    // let (tx, rx) = channel();
+    // let mut watcher = raw_watcher(tx)?;
+
+    // for path in paths {
+    //     watcher.watch(path, RecursiveMode::NonRecursive)?;
+    // }
+let mut i=0;
+thread::spawn(move || {
+            loop {
+        // match rx.recv() {
+            // Ok(e) => {
+                // match e.op {
+                    // Ok(Op::WRITE) => {
+                        let message = "event: reload\ndata:\n\n".to_owned()+i.to_string().as_str();
+                        i+=1;
+                        write!(writer, "{:x}\r\n", message.len());
+                        write!(writer, "{}\r\n", message);
+                        writer.flush();
+                        sleep(Duration::from_secs(1));
+    //                 }
+    //                 _ => {}
+    //             }
+    //         },
+    //         Err(e) => return Err(e.into()),
+    //     }
+    }
+        });
+    
+    Ok(())
+}
+// fn handle_con(mut stream:TcpStream,iname:String,sys:&mut System,tt:&mut u128,perminute:&mut i32){
+//     let buf_reader = std::io::BufReader::new(&mut stream);
+//     let request_line = match buf_reader.lines().next() {
+//         None => "".to_string(),
+//         Some(secondline) => {
+//             match secondline {
+//                 Ok(reqline)  => reqline,
+//                 Err(e) => "".to_string(),
+//             }
+//         },
+//     };
+//     let (status_line, filecontent,contentheader) =
+//         if request_line == "GET / HTTP/1.1".to_string() {
+//              ("HTTP/1.1 200 OK", marks(&iname,sys,tt,perminute),String::from("Content-Type: application/json"))
+//         }
+//         else{
+//             ("HTTP/1.1 200 OK", sincelastread(),String::from("Content-Type: application/json"))
+//         };
+//         let response =
+//         format!("{status_line}\r\n{contentheader}\r\n\r\n{filecontent}");
+//     match stream.write(response.as_bytes()) {
+//         Ok(file) => {
+//         },
+//         Err(error) =>{
+//             return ;
+//         },
+//     };match stream.flush() {
+//         Ok(file) => {
+//         },
+//         Err(error) =>{
+//             return ;
+//         },
+//     };
+//     }
+    fn handle_con(mut request:Request,iname:String,sys:&mut System,tt:&mut u128,perminute:&mut i32)->Result<(),()>{
+        eprintln!("request method:{} url:{}",request.method(),request.url());
+        eprintln!("{:?}",request);
+        match(request.method(),request.url()){
+            (Method::Get,"/")=>{
+                let content_header=Header::from_bytes("Content-Type","application/json; charset=utf-8").unwrap();
+                request.respond(Response::from_string(marks(&iname,sys,tt,perminute)).with_header(content_header)).map_err(|err|{
+                    eprintln!("could not serve request error {}",err);
+                })?;
+            },
+            (Method::Get,"/stream")=>{
+                event_stream(request);
+            },
+            _=>{
+                let content_header=Header::from_bytes("Content-Type","application/json; charset=utf-8").unwrap();
+            request.respond(Response::from_string(sincelastread()).with_header(content_header)).map_err(|err|{
+                eprintln!("could not serve request error {}",err);
+            })?;
             }
-        },
-    };
-    let (status_line, filecontent,contentheader) =
-        if request_line == "GET / HTTP/1.1".to_string() {
-             ("HTTP/1.1 200 OK", marks(&iname,sys,tt,perminute),String::from("Content-Type: application/json"))
         }
-        else{
-            ("HTTP/1.1 200 OK", sincelastread(),String::from("Content-Type: application/json"))
-        };
-        let response =
-        format!("{status_line}\r\n{contentheader}\r\n\r\n{filecontent}");
-    match stream.write(response.as_bytes()) {
-        Ok(file) => {
-        },
-        Err(error) =>{
-            return ;
-        },
-    };match stream.flush() {
-        Ok(file) => {
-        },
-        Err(error) =>{
-            return ;
-        },
-    };
+    Ok(())
     }
     //returns total upload and download bytes count of current session and total data usage since the start of the ns_daemon in a day
     pub fn marks(iname:&String,sys:&mut System,tt:&mut u128,perminute:&mut i32)->String{
