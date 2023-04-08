@@ -15,7 +15,8 @@ Upload and Download total bytes updates every 1s, the total is updated every 60s
 
 ## Tests
 ✔️ Manjaro XFCE (Linux, based on Arch)  
-Tested on Linux but uses libs that should function on Windows and Mac OS platform. Feel free to test in any other platform and tell me the results! 
+✔️ Windows 11  
+Tested on Linux, Windows but uses libs that should function on Mac OS platform. Feel free to test in any other platform and tell me the results! 
   
 ## Setup
 - If you use the executable run the executable with the interface name from any shell if you wish to monitor a specific interface else just double click on the executable. 
