@@ -2,10 +2,11 @@
 #![allow(warnings)]
 use std::{process::{exit},
     time::{Duration},
-        thread::{self, sleep},env::{self, var}, sync::mpsc::channel};
+        thread::{self, sleep},env::{self, var}, sync::mpsc::channel, panic};
 // use abserde::Location;
 // use byte_unit::Byte;
 use chrono::Local;
+use human_panic::setup_panic;
 // mod abserdeapi;
 // use fltk::{app::{App, self}, window::{Window, OverlayWindow, self, SingleWindow, DoubleWindow}, prelude::*, enums::{Color, self}, text::{TextDisplay, TextBuffer}, frame, menu};
 use sysinfo::{SystemExt, NetworkExt, System};
@@ -15,7 +16,14 @@ use prefstore::*;
 use tiny_http::{Server, Request, Method, Header, Response, StatusCode};
 const APPNAME:&str="ns_daemon";
 fn main() ->Result<(), ()> {
-    
+    // setup_panic_hooks();
+    setup_panic!(human_panic::Metadata {
+        version: env!("CARGO_PKG_VERSION").into(),
+        name: env!("CARGO_PKG_NAME").into(),
+        authors: env!("CARGO_PKG_AUTHORS").replace(":", ", ").into(),
+        homepage: env!("CARGO_PKG_HOMEPAGE").into(),
+        path_to_save_log_to: prefstore::prefstore_directory(&APPNAME.to_string()).unwrap(),
+    });
     //to store interface name
     let mut iname=String::new();
     // let date = Local::now();
@@ -304,4 +312,27 @@ fn updateusage(whethertosave:bool/*,val:&mut u128,ptx:&mut u64,prx:&mut u64*/,in
 //             *prx=total_rx;
 //             let tt=total_rx+total_tx;
 //             tt as u128
+// }
+// fn setup_panic_hooks() {
+//     let meta = human_panic::Metadata {
+//         version: env!("CARGO_PKG_VERSION").into(),
+//         name: env!("CARGO_PKG_NAME").into(),
+//         authors: env!("CARGO_PKG_AUTHORS").replace(":", ", ").into(),
+//         homepage: env!("CARGO_PKG_HOMEPAGE").into(),
+//         path_to_save_log_to: prefstore::prefstore_directory(&APPNAME.to_string()).unwrap(),
+//     };
+
+//     let default_hook = panic::take_hook();
+
+//     if let Err(_) = env::var("RUST_BACKTRACE") {
+//         panic::set_hook(Box::new(move |info: &panic::PanicInfo| {
+//             // First call the default hook that prints to standard error.
+//             default_hook(info);
+
+//             // Then call human_panic.
+//             let file_path = human_panic::handle_dump(&meta, info);
+//             human_panic::print_msg(file_path, &meta)
+//                 .expect("human-panic: printing error message to console failed");
+//         }));
+//     }
 // }

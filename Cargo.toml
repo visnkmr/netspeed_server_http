@@ -10,11 +10,24 @@ panic = "abort"
 name = "ns_daemon"
 version = "0.4.0"
 edition = "2021"
+author = ["visnkmr"]
+homepage = "https://github.com/visnkmr/tns_daemon"
+readme = "README.md"
+keywords = [
+    "netspeed",
+    "overlay",
+    "daemon",
+    "bandwidth",
+]
+license = "MIT"
+repository = "https://github.com/visnkmr/tns_daemon"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-prefstore = "0.2.0"
+# prefstore = "0.2.0"
+prefstore={path="../prefstore/prefstore/"}
+human-panic={path="../human-panic/"}
 tiny_http="0.12.0"
 serde_json="1.0"
 # abserde = {version="0.3.3", features= ["json"], default-features = false }
