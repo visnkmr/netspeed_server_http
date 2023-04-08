@@ -25,8 +25,8 @@ repository = "https://github.com/visnkmr/tns_daemon"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-# prefstore = "0.2.0"
-prefstore={path="../prefstore/prefstore/"}
+prefstore = "0.4.0"
+# prefstore={path="../prefstore/prefstore/"}
 human-panic={path="../human-panic/"}
 tiny_http="0.12.0"
 serde_json="1.0"
