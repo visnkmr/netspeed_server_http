@@ -1,5 +1,8 @@
-# ns_daemon
-NetSpeed Daemon for NetSpeed Overlay app written in Rust that provides 
+Backend only variant of [netspeed](https://github.com/netspeed_pc) that uses HTTP for API.  
+
+Written in Rust.
+
+Provides 
 - the upload, download bytes used of present session 
 - total bandwidth usage since the daemon started running. 
 
@@ -7,7 +10,7 @@ Upload and Download total bytes updates every 1s, the total is updated every 60s
 
 ### Crates used
 - `serde_json`
-- `abserde`
+- `prefstore`
 - `serde`
 - `chrono`
 - `sysinfo `
@@ -24,8 +27,8 @@ Tested on Linux, Windows but uses libs that should function on Mac OS platform. 
 The data will be available at `http://localhost:6798` as a json file with session upload bytes, session download bytes, today data usage as the three fields in that order.
 
 
-- If you wish to run the daemon directly from the source code
-Steps to install rust is available at bottom of this page [here](https://github.com/visnkmr/ns_daemon/edit/main/README.md#installing-rust). 
+- If you wish to run directly from the source code
+Steps to install rust is available at bottom of this page [here](README.md#installing-rust). 
 
 Clone the project and in the same directory open preffered shell and `cargo run <interface-name>(optional)`. You can find the debug executable in `target/debug` folder after running `cargo run`.
   
@@ -35,7 +38,7 @@ Found a bug? We'd love to know about it!
 
 Please report all issues on the GitHub [issue tracker][issues].
 
-[issues]: https://github.com/visnkmr/ns_daemon/issues
+[issues]: /issues
 
 ## Installing Rust
 Full docs [here](https://web.mit.edu/rust-lang_v1.25/arch/amd64_ubuntu1404/share/doc/rust/html/book/first-edition/getting-started.html#installing-rust)
